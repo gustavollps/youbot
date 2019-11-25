@@ -9,7 +9,6 @@ from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from trac_ik_python.trac_ik_wrap import TRAC_IK
 import math
-from utils import *
 
 
 class Arm:
