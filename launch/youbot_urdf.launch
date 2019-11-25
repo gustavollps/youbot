@@ -1,0 +1,4 @@
+<?xml version="1.0" ?>
+<launch>
+  <param name="youbot_description" command="$(find xacro)/xacro --inorder '$(find youbot)/urdf/youbot_launch.xacro'" />
+</launch>
