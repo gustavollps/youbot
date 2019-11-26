@@ -149,9 +149,9 @@ def timerCallBack(event):
     # brz modifies the limit for YAW
     arm_control.brz = 9999
     # bry modifies the limit for PITCH
-    arm_control.brz = 0.001
+    arm_control.bry = 0.001
     # brx modifies the limit for ROLL
-    arm_control.brz = 0.001
+    arm_control.brx = 0.001
 
     # force solving and publishing (if a successful calculation) the inverse kinematics results
     # Return true if the output angles were correctly calculated
