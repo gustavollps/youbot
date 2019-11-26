@@ -61,6 +61,9 @@ class Arm:
                 # print(rotat, euler_from_quaternion(quat), '-------', trans, [x, y, z])
                 # print(dist_3d(pos, trans))
                 self.joints_pub.publish(msg_cmd)
+            else:
+                print('fail')
+                return False
             return True
         else:
             return False
@@ -78,3 +81,6 @@ class Arm:
             # _, _, rpy_angles, translation_vector, _ = tf.transformations.decompose_matrix(pose)
             # print(dist_3d(pos,trans))
             self.joints_pub.publish(msg_cmd)
+            return True
+        else:
+            return False
