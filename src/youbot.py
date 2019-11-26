@@ -29,7 +29,7 @@ odom_angle = [0, 0, 0]
 qinit = [0.] * 6
 
 # position and orientation for the inverse kinematics
-x, y, z = 0, 0, 0
+x, y, z = 0, 0.6, 0.135
 quat = quaternion_from_euler(-math.pi / 2, 0, 0)
 
 # current position and orientation variables from tool tip to base_link
@@ -112,10 +112,16 @@ def timerCallBack(event):
     except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
         pass
 
+    posicao = odom.pose.pose.position
+    pt = [-2.2, 1.4]
+    robot_control.moveGlobal(point=pt, ang=-90*math.pi/180, odom=odom, fast=False)
+
     # solve a inverse kinematics problem the desired [x,y,z] and quat
     ik_published = arm_control.solve([x, y, z], quat, trans, rotat, qinit)
-    # ik_published
-    # print(ik_published)
+
+
+
+
 
 
 

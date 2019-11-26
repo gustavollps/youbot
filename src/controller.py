@@ -79,16 +79,17 @@ class Controller:
 
         odom_angle = get_angle(odom)
         yaw = odom_angle[2]
-        vel_ang = math.atan2(dx, dy)
+        vel_ang = math.atan2(dy, dx)
         vel_mod = math.sqrt(dx ** 2 + dy ** 2)
         dang = vel_ang - yaw
         sy = math.sin(dang)
         cy = math.cos(dang)
-        vx = vel_mod * sy
-        vy = vel_mod * cy
+        vx = vel_mod * cy
+        vy = vel_mod * sy
         rot = -self.setAngle(ang, odom_angle)
         vx = constrain(vx, 1)
         vy = constrain(vy, 1)
+        ang = fix_angle(ang, yaw)
         if not fast:
             if abs(ang - yaw) > 5 * math.pi / 180:
                 vx = vy = 0
