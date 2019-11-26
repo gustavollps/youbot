@@ -62,7 +62,7 @@ class Arm:
                 # print(dist_3d(pos, trans))
                 self.joints_pub.publish(msg_cmd)
             else:
-                print('fail')
+                # print('fail')
                 return False
             return True
         else:
