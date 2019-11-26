@@ -26,7 +26,7 @@ odom = Odometry()
 odom_angle = [0, 0, 0]
 
 # initial (and current) arm joint angles
-qinit = [0.] * 6
+qinit = [0.] * 5
 
 # position and orientation for the inverse kinematics
 x, y, z = 0, 0.6, 0.135
@@ -45,6 +45,7 @@ time_sim = 0
 start_time = 0
 state = 0
 task_time = 0
+dist = 0
 
 
 # callback for the joints angles (with transform lookup)
@@ -105,24 +106,56 @@ def timerCallBack(event):
 
     # getting position and orientation for the arm's tip current pose
     try:
+        # get the current transform between the base_link and the tip of the tool
         (trans, r) = listener.lookupTransform('/base_link', '/tool', rospy.Time(0))
-        (trans_map, r_map) = listener.lookupTransform('/map', '/tool', rospy.Time(0))
+        # convert the quaternion to a readable roll, pitch and yaw angles
         rotat = euler_from_quaternion(r)
+
+        # get the current transform between the map origin and the tip of the tool
+        (trans_map, r_map) = listener.lookupTransform('/map', '/tool', rospy.Time(0))
+        # convert the quaternion to a readable roll, pitch and yaw angles
         rotat_map = euler_from_quaternion(r_map)
+
     except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
         pass
 
-    posicao = odom.pose.pose.position
-    pt = [-2.2, 1.4]
-    robot_control.moveGlobal(point=pt, ang=-90*math.pi/180, odom=odom, fast=False)
+    pose = odom.pose.pose.position
 
-    # solve a inverse kinematics problem the desired [x,y,z] and quat
+    x = 0.0
+    y = 0.6
+    z = 0.135
+
+    # get the quaternion from a roll, pitch and yaw angles
+    quaternion_from_euler(-math.pi / 2, 0, 0)
+
+    # point with desired position to go
+    pt = [-2.2, 1.4]
+
+    # calculates the distance between the 'pose' (that is odom.pose.pose.position) and pt variables
+    d = dist_2d(pose, pt)
+
+    # Controls the linear and angular velocities of the robot to reach
+    # the point (point=VALUE) with the desired angle (ang=VALUE)
+    robot_control.moveGlobal(point=pt, ang=0, odom=odom, fast=False)
+
+    # This method states if it is necessary to move the arm to reach the desired position and orientation. If so, it
+    # calculates the inverse kinematics, and then publishes it on the specified topic.
+    # Returns true if the data were calculated and published correctly
     ik_published = arm_control.solve([x, y, z], quat, trans, rotat, qinit)
 
+    # NOTE -----------------------------------------------------------------------------------------------------------
+    # the kinematics of may not allow some pose with the exactly orientation
+    # changing error limits for the inverse kinematics result's orientation will allow more positions
+    # brz modifies the limit for YAW
+    arm_control.brz = 9999
+    # bry modifies the limit for PITCH
+    arm_control.brz = 0.001
+    # brx modifies the limit for ROLL
+    arm_control.brz = 0.001
 
-
-
-
+    # force solving and publishing (if a successful calculation) the inverse kinematics results
+    # Return true if the output angles were correctly calculated
+    ik_published = arm_control.forceSolve([x, y, z], quat, trans, rotat, qinit)
 
 
 if __name__ == '__main__':
