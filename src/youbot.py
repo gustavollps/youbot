@@ -83,7 +83,6 @@ gripper_sub = rospy.Subscriber('/' + robot_name + '/gripper_sensor', Float32, se
 odom_sub = rospy.Subscriber('/' + robot_name + '/pose', Odometry, odomCallBack)
 
 joints_pub = rospy.Publisher('/' + robot_name + '/joints_cmd', Float64MultiArray, queue_size=1)
-vel_pub = rospy.Publisher('/' + robot_name + '/joints_vel', Float64MultiArray, queue_size=1)
 gripper_pub = rospy.Publisher('/' + robot_name + '/gripper', Bool, queue_size=1)
 cmdvel_pub = rospy.Publisher('/' + robot_name + '/cmd_vel', Twist, queue_size=1)
 
@@ -104,6 +103,8 @@ def timerCallBack(event):
     global task_time
     global trans, rotat
 
+    position = odom.pose.pose.position
+
     # getting position and orientation for the arm's tip current pose
     try:
         # get the current transform between the base_link and the tip of the tool
@@ -119,48 +120,98 @@ def timerCallBack(event):
     except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
         pass
 
-    pose = odom.pose.pose.position
+    if state == 0:
+        # variables to control the tip pose
+        x = -0.35
+        y = 0.16
+        z = 0.13
+        # row, pith and yaw angles
+        rpy = (-math.pi / 2, 0, math.pi / 2)
+        # conversion of row, pitch and yaw angles to a quaternion variable (necessity for the ik solver)
+        quat = quaternion_from_euler(rpy[0], rpy[1], rpy[2])
 
-    x = 0.0
-    y = 0.6
-    z = 0.135
+        # point with desired position to go (x,y)
+        pt = [-2.2, 1.4]
 
-    # get the quaternion from a roll, pitch and yaw angles
-    quaternion_from_euler(-math.pi / 2, 0, 0)
+        # calculates the distance between the 'position' (that is odom.pose.pose.position)
+        # and pt (a list with 2 elements)
+        d = dist_2d(position, pt)
 
-    # point with desired position to go
-    pt = [-2.2, 1.4]
+        # Controls the linear and angular velocities of the robot to reach
+        # the point (point=VALUE) with the desired angle (ang=VALUE)
+        robot_control.moveGlobal(point=pt, ang=0, odom=odom, fast=False)
 
-    # calculates the distance between the 'pose' (that is odom.pose.pose.position) and pt variables
-    d = dist_2d(pose, pt)
+        if d < 0.1:  # state changing trigger (if the robot is less than 0.1m from its objective
+            state = 1
 
-    # Controls the linear and angular velocities of the robot to reach
-    # the point (point=VALUE) with the desired angle (ang=VALUE)
-    robot_control.moveGlobal(point=pt, ang=0, odom=odom, fast=False)
+    elif state == 1:
+        # variables to control the tip pose
+        x = 0.0
+        y = 0.6
+        z = 0.25
+        # row, pith and yaw angles
+        rpy = (-math.pi / 2, 0, 0)
+        # conversion of row, pitch and yaw angles to a quaternion variable (necessity for the ik solver)
+        quat = quaternion_from_euler(rpy[0], rpy[1], rpy[2])
 
+        # point with desired position to go (x,y)
+        pt = [-2.2, 1.4]
+
+        # calculates the distance between the 'position' (that is odom.pose.pose.position)
+        # and pt (a list with 2 elements)
+        d = dist_2d(position, pt)
+
+        # Controls the linear and angular velocities of the robot to reach
+        # the point (point=VALUE) with the desired angle (ang=VALUE)
+        robot_control.moveGlobal(point=pt, ang=0, odom=odom, fast=False)
+
+        if d < 0.1:  # state changing trigger (if the robot is less than 0.1m from its objective
+            state = 1
+
+
+# inverse kinematics timer (runs at lower frequency to lighten the computational load
+def ik_timerCallBack(event):
     # This method states if it is necessary to move the arm to reach the desired position and orientation. If so, it
     # calculates the inverse kinematics, and then publishes it on the specified topic.
-    # Returns true if the data were calculated and published correctly
-    ik_published = arm_control.solve([x, y, z], quat, trans, rotat, qinit)
+    # Returns true if there was a ik calculation try, and the solution if it was published correctly
+    ik_calc, solution = arm_control.solve([x, y, z], quat, trans, rotat, qinit)
+    if ik_calc:
+        if solution is not None:
+            print("Published solution:", solution)
+        else:
+            print("Solution failed")
+    else:
+        print('No IK needed, tip already at the desired pose')
 
     # NOTE -----------------------------------------------------------------------------------------------------------
-    # the kinematics of may not allow some pose with the exactly orientation
-    # changing error limits for the inverse kinematics result's orientation will allow more positions
-    # brz modifies the limit for YAW
-    arm_control.brz = 9999
-    # bry modifies the limit for PITCH
-    arm_control.bry = 0.001
-    # brx modifies the limit for ROLL
-    arm_control.brx = 0.001
+    # the kinematics of may not allow some pose with the exactly set position/orientation
+    # changing error limits for the inverse kinematics result's will allow more poses
+    # bx, by, and bz are the x,y,z limits for the desired position
+    arm_control.bx = 0.001
+    arm_control.by = 0.001
+    arm_control.bz = 0.001
+    # brz modifies the limit for YAW (relative to the desired frame)
+    arm_control.brz = 0.05
+    # bry modifies the limit for PITCH (relative to the desired frame)
+    arm_control.bry = 0.05
+    # brx modifies the limit for ROLL (relative to the desired frame)
+    arm_control.brx = 0.05
 
+    # ----------------------------------------------------------------------------------------------------------------
     # force solving and publishing (if a successful calculation) the inverse kinematics results
     # Return true if the output angles were correctly calculated
-    ik_published = arm_control.forceSolve([x, y, z], quat, trans, rotat, qinit)
+    force = None
+    if force is not None:
+        ik_success = arm_control.forceSolve([x, y, z], quat, trans, rotat, qinit)
 
 
 if __name__ == '__main__':
     start_time = time_sim
 
+    # timer for the states machine and control loop for position and orientation (with robot_control.moveGlobal)
     timer = rospy.Timer(rospy.Duration(0.02), timerCallBack)
+
+    # timer for the inverse kinematics (lower frequency due to the heavy load for the calculations)
+    ik_timer = rospy.Timer(rospy.Duration(0.3), ik_timerCallBack)
 
     rospy.spin()
