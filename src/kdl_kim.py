@@ -13,9 +13,9 @@ class forwardKin:
         self.kdl_kin = KDL(self.robot_urdf, "base_link", "tool")
 
     def fkin(self, angles):
-        angles = [0, 0, 0, 0, 0]
+        # angles = [0, 0, 0, 0, 0]
         pose = self.kdl_kin.forward(angles)
         _, _, rpy_angles, translation_vector, _ = \
             tf.transformations.decompose_matrix(pose)
-        print("rpy ---- ", rpy_angles, translation_vector)
+        # print("rpy ---- ", rpy_angles, translation_vector)
         return translation_vector, rpy_angles
