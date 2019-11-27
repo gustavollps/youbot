@@ -17,7 +17,7 @@
         <parent link="base_link"/>
         <child link="link_1"/>
         <!-- <limit effort="0" lower="-2.949606435870417" upper="5.899212871740834" velocity="3.054"/>  -1.690e+02  3.380e+02 -->
-        <limit effort="0" lower="-6.28" upper="6.28" velocity="3.054"/>
+        <limit effort="0" lower="-3.5" upper="3.5" velocity="3.054"/>
       </joint>
       <joint type="revolute" name="joint_1">
         <origin xyz="0 0.033 0.2459" rpy="0 0 0"/>
@@ -31,21 +31,21 @@
         <axis xyz="1 0 0"/>
         <parent link="link_2"/>
         <child link="link_3"/>
-        <limit effort="0" lower="-2.2863813201125716" upper="4.572762640225143" velocity="3.054"/>
+        <limit effort="0" lower="-2.2863813201125716" upper="2.2863813201125716" velocity="3.054"/>
       </joint>
       <joint type="revolute" name="joint_3">
         <origin xyz="0 -0.0001 0.1348" rpy="0 0 0"/>
         <axis xyz="1 0 0"/>
         <parent link="link_3"/>
         <child link="link_4"/>
-        <limit effort="0" lower="-1.7802358370342162" upper="3.5604716740684323" velocity="3.054"/>
+        <limit effort="0" lower="-1.7802358370342162" upper="1.7802358370342162" velocity="3.054"/>
       </joint>
       <joint type="revolute" name="joint_4">
         <origin xyz="-0.00052 0.0006 0.1937" rpy="0 0 0"/>
         <axis xyz="0 0 1"/>
         <parent link="link_4"/>
         <child link="tool"/>
-        <limit effort="0" lower="-1.5707963267948966" upper="3.141592653589793" velocity="3.054"/>
+        <limit effort="0" lower="-1.5707963267948966" upper="1.5707963267948966" velocity="3.054"/>
       </joint>
 
   </xacro:macro>
