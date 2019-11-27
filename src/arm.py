@@ -28,7 +28,7 @@ class Arm:
         self.ik_solver = TRAC_IK("base_link",
                                  "tool",
                                  urdf,
-                                 0.05,  # default seconds
+                                 0.1,  # default seconds
                                  1e-5,  # default epsilon
                                  "Speed")
         # print("Number of joints:")
@@ -46,7 +46,13 @@ class Arm:
     def solve(self, pos, quat, trans, rotat, q0):
         rotation = euler_from_quaternion(quat)
         # print(trans, dist_3d(pos, trans), dist_3d(rotation, rotat))
-        if trans is not None and (dist_3d(pos, trans) > 0.005 or dist_3d(rotation, rotat) > 0.005):
+        factor = 5
+        if trans is not None and (abs(pos[0] - trans[0]) > factor * self.bx or
+                                  abs(pos[1] - trans[1]) > factor * self.by or
+                                  abs(pos[2] - trans[2]) > factor * self.bz or
+                                  abs(rotation[0] - rotat[0]) > factor * self.brx or
+                                  abs(rotation[1] - rotat[1]) > factor * self.bry or
+                                  abs(rotation[2] - rotat[2]) > factor * self.brz):
             sol = self.ik_solver.CartToJnt(q0,
                                            pos[0], pos[1], pos[2],
                                            quat[0], quat[1], quat[2], quat[3],
@@ -55,32 +61,29 @@ class Arm:
             msg_cmd = Float64MultiArray()
             msg_cmd.data = sol
             if len(sol) != 0:
-                # pose = self.kdl_kin.forward(sol)
-                # _, _, rpy_angles, translation_vector, _ = tf.transformations.decompose_matrix(pose)
-                # print("rpy ---- ", rpy_angles, translation_vector)
-                # print(rotat, euler_from_quaternion(quat), '-------', trans, [x, y, z])
-                # print(dist_3d(pos, trans))
                 self.joints_pub.publish(msg_cmd)
             else:
                 # print('fail')
-                return False
-            return True
+                return True, None
+            # print('pub', sol)
+            return True, sol
         else:
-            return False
+            return False, None
 
-    def forceSolve(self, pos, quat, trans, rotat, q0):
-        sol = self.ik_solver.CartToJnt(q0,
-                                       pos[0], pos[1], pos[2],
-                                       quat[0], quat[1], quat[2], quat[3],
-                                       self.bx, self.by, self.bz,
-                                       self.brx, self.bry, self.brz)
-        msg_cmd = Float64MultiArray()
-        msg_cmd.data = sol
-        if len(sol) != 0:
-            # pose = self.kdl_kin.forward(sol)
-            # _, _, rpy_angles, translation_vector, _ = tf.transformations.decompose_matrix(pose)
-            # print(dist_3d(pos,trans))
-            self.joints_pub.publish(msg_cmd)
-            return True
-        else:
-            return False
+
+def forceSolve(self, pos, quat, trans, rotat, q0):
+    sol = self.ik_solver.CartToJnt(q0,
+                                   pos[0], pos[1], pos[2],
+                                   quat[0], quat[1], quat[2], quat[3],
+                                   self.bx, self.by, self.bz,
+                                   self.brx, self.bry, self.brz)
+    msg_cmd = Float64MultiArray()
+    msg_cmd.data = sol
+    if len(sol) != 0:
+        # pose = self.kdl_kin.forward(sol)
+        # _, _, rpy_angles, translation_vector, _ = tf.transformations.decompose_matrix(pose)
+        # print(dist_3d(pos,trans))
+        self.joints_pub.publish(msg_cmd)
+        return True
+    else:
+        return False
