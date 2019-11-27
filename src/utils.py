@@ -42,3 +42,22 @@ def get_angle(odom):
                   odom.pose.pose.orientation.z,
                   odom.pose.pose.orientation.w]
     return euler_from_quaternion(quaternion)
+
+
+def format_dec(num, places):
+    factor = 10 ** places
+    return math.floor(num * factor) / factor
+
+
+def format_vec(vec, places):
+    output = [0] * len(vec)
+    for i, x in enumerate(vec):
+        output[i] = format_vec(x, places)
+    return output
+
+
+def mult_vec(vec, factor):
+    output = [0] * len(vec)
+    for i, x in enumerate(vec):
+        output[i] = x * factor
+    return output
